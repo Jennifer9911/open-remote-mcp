@@ -1,0 +1,17 @@
+services:
+  relay:
+    build: .
+    ports:
+      - "8787:8787"
+    environment:
+      PORT: 8787
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8787}
+      DATA_DIR: /data
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET}
+    volumes:
+      - open_remote_mcp_data:/data
+    restart: unless-stopped
+
+volumes:
+  open_remote_mcp_data:

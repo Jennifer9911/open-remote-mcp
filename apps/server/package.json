@@ -1,11 +1,13 @@
 {
   "name": "@open-remote-mcp/server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
+  "engines": { "node": ">=22.5.0" },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test src/lib/*.test.ts",
     "start": "node dist/index.js"
   },
   "dependencies": {

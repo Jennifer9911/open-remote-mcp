@@ -1,13 +1,17 @@
 {
   "name": "open-remote-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "workspaces": ["apps/*"],
+  "engines": { "node": ">=22.5.0" },
   "scripts": {
     "dev": "concurrently -n server,web \"npm run dev -w @open-remote-mcp/server\" \"npm run dev -w @open-remote-mcp/web\"",
     "build": "npm run build -w @open-remote-mcp/web && npm run build -w @open-remote-mcp/server && npm run build -w @open-remote-mcp/agent",
     "typecheck": "npm run typecheck -w @open-remote-mcp/server && npm run typecheck -w @open-remote-mcp/agent && npm run typecheck -w @open-remote-mcp/web",
-    "start": "npm run start -w @open-remote-mcp/server"
+    "test": "npm run test -w @open-remote-mcp/server",
+    "test:e2e": "node scripts/e2e.mjs",
+    "start": "npm run start -w @open-remote-mcp/server",
+    "agent": "npm run start -w @open-remote-mcp/agent"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
