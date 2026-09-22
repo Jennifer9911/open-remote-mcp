@@ -1,0 +1,43 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import { Activity, Cable, CheckCircle2, ChevronRight, CircleDot, Cpu, FolderLock, Github, KeyRound, Laptop, Radio, RefreshCw, ShieldCheck, TerminalSquare, Wrench } from 'lucide-react';
+import './styles.css';
+
+type Device={id:string;name:string;platform?:string;status:'online'|'offline';lastSeen:string;capabilities?:string[]};
+type Call={id:string;at:string;deviceId:string;tool:string;ok:boolean;ms:number;summary:string};
+const sections=[['overview','Overview',Activity],['devices','Devices',Laptop],['activity','Activity',Radio],['security','Security',ShieldCheck],['setup','Setup',Cable]] as const;
+
+function App(){
+  const [devices,setDevices]=useState<Device[]>([]),[calls,setCalls]=useState<Call[]>([]),[section,setSection]=useState('overview'),[loading,setLoading]=useState(false);
+  async function refresh(){setLoading(true);try{const [d,a]=await Promise.all([fetch('/api/devices'),fetch('/api/activity')]);setDevices(await d.json());setCalls(await a.json())}finally{setLoading(false)}}
+  useEffect(()=>{refresh();const id=setInterval(refresh,4000);return()=>clearInterval(id)},[]);
+  const online=devices.filter(d=>d.status==='online').length, success=calls.length?Math.round(calls.filter(c=>c.ok).length/calls.length*100):100, recent=useMemo(()=>calls.slice(0,7),[calls]);
+  return <div className="app-shell"><aside>
+    <div className="brand"><div className="brand-mark"><Radio size={19}/></div><div><b>Open Remote MCP</b><span>Control plane</span></div></div>
+    <nav>{sections.map(([id,label,Icon])=><button className={section===id?'active':''} onClick={()=>setSection(id)} key={id}><Icon size={17}/><span>{label}</span></button>)}</nav>
+    <div className="aside-bottom"><div className="security-chip"><ShieldCheck size={15}/><span>Local-first security</span></div><a href="https://github.com/Jennifer9911/open-remote-mcp" target="_blank"><Github size={16}/> GitHub <ChevronRight size={14}/></a></div>
+  </aside><main>
+    <header><div><span className="eyebrow">REMOTE MCP CONTROL PLANE</span><h1>{sections.find(x=>x[0]===section)?.[1]}</h1></div><button className="refresh" onClick={refresh}><RefreshCw size={16} className={loading?'spin':''}/> Refresh</button></header>
+    {section==='overview'&&<Overview online={online} devices={devices} calls={recent} success={success}/>}
+    {section==='devices'&&<Devices devices={devices}/>}
+    {section==='activity'&&<ActivityView calls={calls}/>}
+    {section==='security'&&<Security/>}{section==='setup'&&<Setup/>}
+  </main></div>
+}
+function Overview({online,devices,calls,success}:{online:number;devices:Device[];calls:Call[];success:number}){return <>
+  <section className="hero"><div><div className="status-line"><span className="pulse"/> Relay ready</div><h2>One secure bridge from AI to your machines.</h2><p>Expose a controlled set of local file and terminal tools through one Remote MCP endpoint, with device routing and an auditable control plane.</p><div className="hero-actions"><button><Cable size={16}/> Connect a device</button><button className="secondary"><Wrench size={16}/> MCP endpoint</button></div></div>
+  <div className="relay-visual"><div className="node"><Cpu/><span>AI client</span></div><div className="beam"><i/><i/><i/></div><div className="node strong"><Radio/><span>Relay</span></div><div className="beam"><i/><i/><i/></div><div className="node"><Laptop/><span>Agent</span></div></div></section>
+  <section className="metrics"><Metric icon={<Laptop/>} label="Online devices" value={String(online)} note={devices.length?String(devices.length)+' paired':'No devices paired'}/><Metric icon={<Activity/>} label="Tool calls" value={String(calls.length)} note="Recent session"/><Metric icon={<CheckCircle2/>} label="Success rate" value={String(success)+'%'} note="Relay execution"/><Metric icon={<FolderLock/>} label="Default posture" value="Scoped" note="Shell off by default"/></section>
+  <section className="grid-2"><Card title="Devices" action="Manage">{devices.length?devices.slice(0,4).map(d=><DeviceRow d={d} key={d.id}/>):<Empty text="Start the agent to pair your first machine."/>}</Card><Card title="Recent activity" action="View all">{calls.length?calls.map(c=><CallRow c={c} key={c.id}/>):<Empty text="Tool calls will appear here in real time."/>}</Card></section>
+</>}
+function Metric({icon,label,value,note}:{icon:React.ReactNode;label:string;value:string;note:string}){return <div className="metric"><div className="metric-icon">{icon}</div><span>{label}</span><strong>{value}</strong><small>{note}</small></div>}
+function Card({title,action,children}:{title:string;action?:string;children:React.ReactNode}){return <div className="card"><div className="card-head"><h3>{title}</h3>{action&&<span>{action}<ChevronRight size={14}/></span>}</div>{children}</div>}
+function DeviceRow({d}:{d:Device}){return <div className="row"><div className="device-icon"><Laptop size={18}/></div><div className="grow"><b>{d.name}</b><small>{(d.platform??'unknown')+' · '+d.id}</small></div><span className={'pill '+d.status}><CircleDot size={11}/>{d.status}</span></div>}
+function CallRow({c}:{c:Call}){return <div className="row"><div className={'call-icon '+(c.ok?'good':'bad')}><TerminalSquare size={17}/></div><div className="grow"><b>{c.tool}</b><small>{c.deviceId+' · '+c.ms+' ms'}</small></div><span className="time">{new Date(c.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div>}
+function Empty({text}:{text:string}){return <div className="empty"><Radio size={22}/><span>{text}</span></div>}
+function Devices({devices}:{devices:Device[]}){return <div className="page-stack"><div className="info-banner"><Laptop/><div><b>Paired machines</b><span>Agents are reachable only while their outbound WebSocket connection is active.</span></div></div><div className="device-grid">{devices.length?devices.map(d=><div className="device-card" key={d.id}><div className="device-top"><div className="device-icon big"><Laptop/></div><span className={'pill '+d.status}>{d.status}</span></div><h3>{d.name}</h3><p>{d.platform??'Unknown platform'}</p><dl><div><dt>Device ID</dt><dd>{d.id}</dd></div><div><dt>Last seen</dt><dd>{new Date(d.lastSeen).toLocaleString()}</dd></div><div><dt>Tools</dt><dd>{d.capabilities?.length??0} exposed</dd></div></dl></div>):<Empty text="No agents connected yet."/>}</div></div>}
+function ActivityView({calls}:{calls:Call[]}){return <Card title="Tool-call audit trail"><div className="table"><div className="tr head"><span>Tool</span><span>Device</span><span>Status</span><span>Latency</span><span>Time</span></div>{calls.length?calls.map(c=><div className="tr" key={c.id}><b>{c.tool}</b><span>{c.deviceId}</span><span className={c.ok?'success':'failure'}>{c.ok?'Success':'Failed'}</span><span>{c.ms} ms</span><span>{new Date(c.at).toLocaleString()}</span></div>):<Empty text="No activity recorded yet."/>}</div></Card>}
+function Security(){const items=[[FolderLock,'Allowed roots','Filesystem tools are rejected unless the resolved path is inside an explicit agent-side root.'],[TerminalSquare,'Shell opt-in','Command execution is disabled by default and must be enabled on each machine.'],[KeyRound,'Separate credentials','MCP client access and device-agent access use separate bearer credentials in the MVP.'],[ShieldCheck,'Local enforcement','The agent, not the cloud relay, makes the final path and shell permission decision.']] as const;return <div className="security-grid">{items.map(([Icon,title,body])=><div className="security-card" key={title}><div><Icon/></div><h3>{title}</h3><p>{body}</p><span><CheckCircle2 size={14}/> enabled by design</span></div>)}</div>}
+function Setup(){return <div className="setup-grid"><Card title="1. Start the relay"><Code>ADMIN_TOKEN=... AGENT_SHARED_TOKEN=... npm run dev</Code></Card><Card title="2. Start an agent"><Code>REMOTE_MCP_SERVER=ws://localhost:8787/agent{"\n"}DEVICE_TOKEN=... ALLOWED_ROOTS=/path/to/workspace{"\n"}npm run dev -w @open-remote-mcp/agent</Code></Card><Card title="3. Add to an MCP client"><Code>https://your-host.example/mcp</Code><p className="hint">Use the relay bearer token for the current MVP. OAuth 2.1 + PKCE is on the public roadmap.</p></Card><Card title="4. Expand safely"><p className="hint">Enable shell only on machines that need it. Keep production roots narrow, rotate device tokens, and put the relay behind TLS.</p></Card></div>}
+function Code({children}:{children:React.ReactNode}){return <pre><code>{children}</code></pre>}
+createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>);

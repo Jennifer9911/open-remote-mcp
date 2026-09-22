@@ -1,0 +1,18 @@
+{
+  "name": "@open-remote-mcp/agent",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": { "open-remote-agent": "dist/index.js" },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/index.js"
+  },
+  "dependencies": { "ws": "^8.18.3" },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.20.5"
+  }
+}
